@@ -8,7 +8,7 @@ public class CharacterController : MonoBehaviour
     public event Action<Vector2> OnMovementEvent;
     public event Action OnJumpEvent;
     public event Action OnSlideEvent;
-    public event Action OnPauseEvent;
+    public event Action OnCrouchEvent;
 
     public void CallMovementEvent(Vector2 direction)
     {
@@ -22,8 +22,8 @@ public class CharacterController : MonoBehaviour
     {
         OnSlideEvent?.Invoke();
     }
-    public void CallPauseEvent()
+    public void CallCrouchEvent()
     {
-        OnPauseEvent?.Invoke();
+        OnCrouchEvent?.Invoke();
     }
 }

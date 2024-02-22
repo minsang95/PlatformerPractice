@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -14,10 +15,12 @@ public class PlayerMovement : MonoBehaviour
 
     private float speed = 30f;
     private float maxSpeed = 10f;
-    private float jumpPower = 20f;
-    private float slidePower = 5f;
+    private float jumpPower = 15f;
+    private float slidePower = 10f;
     private bool slideReady = true;
     WaitForSeconds slideReadySeconds = new WaitForSeconds(1);
+
+    private bool isCrouch = false;
 
     private void Awake()
     {
@@ -29,38 +32,53 @@ public class PlayerMovement : MonoBehaviour
     }
     private void Start()
     {
-        _controller.OnMovementEvent += Move;
+        _controller.OnMovementEvent += MovementDirection;
         _controller.OnJumpEvent += Jump;
         _controller.OnSlideEvent += Slide;
+        _controller.OnCrouchEvent += Crouch;
 
         _animator.SetBool(_animData.GroundParameterHash, true);
     }
     private void FixedUpdate()
     {
-        ApplyMovement(_movementDirection);
+        Run(_movementDirection);
         GroundCheck();
+        if(isCrouch)
+        {
+            if(jumpPower < 30f)
+                jumpPower += Time.fixedDeltaTime * 15f;
+        }
     }
-    private void Move(Vector2 direction)
+    private void MovementDirection(Vector2 direction)
     {
         _movementDirection = direction;
         if (direction.x > 0)
             _transform.localScale = new Vector3(1, 1, 1);
         else if(direction.x < 0)
             _transform.localScale = new Vector3(-1, 1, 1);
+        _animator.SetBool(_animData.SlideParameterHash, false);
     }
-    private void ApplyMovement(Vector2 direction)
+    private void Run(Vector2 direction)
     {
-        if (_animator.GetBool(_animData.GroundParameterHash))
+        if (_animator.GetBool(_animData.GroundParameterHash) && !_animator.GetBool(_animData.SlideParameterHash))
         {
             if (direction != Vector2.zero)
             {
-                _rigidbody.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode2D.Impulse);
-                _animator.SetBool(_animData.RunParameterHash, true);
+                if (!isCrouch)
+                {
+                    _rigidbody.AddForce(direction * speed * Time.fixedDeltaTime, ForceMode2D.Impulse);
+                    _animator.SetBool(_animData.RunParameterHash, true);
+                }
+                else if(Mathf.Abs(_rigidbody.velocity.x) <= 7f)
+                {
+                    _animator.SetBool(_animData.CrouchParameterHash, true);
+                    _animator.SetBool(_animData.RunParameterHash, false);
+                }
             }
             else
             {
-                _animator.SetBool(_animData.RunParameterHash, false);
-                _animator.SetBool(_animData.SlideParameterHash, false);
+                _rigidbody.velocity = Vector2.zero;
+                _animator.SetBool(_animData.RunParameterHash, false);   
             }
 
             if (_rigidbody.velocity.x > maxSpeed)
@@ -79,13 +97,27 @@ public class PlayerMovement : MonoBehaviour
         if (_animator.GetBool(_animData.GroundParameterHash))
         {
             _rigidbody.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+            isCrouch = false;
+            jumpPower = 15f;
             _animator.SetBool(_animData.JumpParameterHash, true);
             SetAnimAir(true);
         }
     }
+    private void Crouch()
+    {
+        if (_animator.GetBool(_animData.GroundParameterHash) && !_animator.GetBool(_animData.SlideParameterHash))
+        {
+            isCrouch = !isCrouch;
+            jumpPower = 15f;
+            if(Mathf.Abs(_rigidbody.velocity.x) <= 7f && isCrouch)
+                _animator.SetBool(_animData.CrouchParameterHash, true);
+            else if(!isCrouch)
+                _animator.SetBool(_animData.CrouchParameterHash, false);
+        }
+    }
     private void Slide()
     {
-        if (_animator.GetBool(_animData.GroundParameterHash) && slideReady)
+        if (_rigidbody.velocity.y == 0 && slideReady && !isCrouch && !_animator.GetBool(_animData.SlideParameterHash))
         {
             _rigidbody.AddForce(_movementDirection * slidePower, ForceMode2D.Impulse);
             _animator.SetBool(_animData.SlideParameterHash, true);
@@ -97,7 +129,7 @@ public class PlayerMovement : MonoBehaviour
         slidePower = 0;
         slideReady = false;
         yield return slideReadySeconds;
-        slidePower = 5f;
+        slidePower = 10f;
         slideReady = true;
     }
 
@@ -125,17 +157,18 @@ public class PlayerMovement : MonoBehaviour
     {
         _animator.SetBool(_animData.GroundParameterHash, b);
 
-        _animator.SetBool(_animData.AirParameterHash, !b);
-        _animator.SetBool(_animData.JumpParameterHash, !b);
-        _animator.SetBool(_animData.FallParameterHash, !b);
+        _animator.SetBool(_animData.AirParameterHash, false);
+        _animator.SetBool(_animData.JumpParameterHash, false);
+        _animator.SetBool(_animData.FallParameterHash, false);
     }
 
     private void SetAnimAir(bool b)
     {
         _animator.SetBool(_animData.AirParameterHash, b);
 
-        _animator.SetBool(_animData.GroundParameterHash, !b);
-        _animator.SetBool(_animData.RunParameterHash, !b);
-        _animator.SetBool(_animData.SlideParameterHash, !b);
+        _animator.SetBool(_animData.GroundParameterHash, false);
+        _animator.SetBool(_animData.RunParameterHash, false);
+        _animator.SetBool(_animData.SlideParameterHash, false);
+        _animator.SetBool(_animData.CrouchParameterHash, false);
     }
 }

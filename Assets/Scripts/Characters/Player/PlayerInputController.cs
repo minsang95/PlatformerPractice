@@ -19,8 +19,8 @@ public class PlayerInputController : CharacterController
     {
         CallSlideEvent();
     }
-    public void OnPause()
+    public void OnCrouch()
     {
-        CallPauseEvent();
+        CallCrouchEvent();
     }
 }
