@@ -14,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
     private float maxSpeed = 10f;
     private float jumpPower = 10f;
     private float slidePower = 5f;
+    WaitForSeconds slideReadySeconds = new WaitForSeconds(1);
 
     private void Awake()
     {
@@ -59,5 +60,12 @@ public class PlayerMovement : MonoBehaviour
     private void Slide()
     {
         _rigidbody.AddForce(_movementDirection * slidePower, ForceMode2D.Impulse);
+        StartCoroutine(SlideReady());
+    }
+    IEnumerator SlideReady()
+    {
+        slidePower = 0;
+        yield return slideReadySeconds;
+        slidePower = 5f;
     }
 }
